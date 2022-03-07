@@ -23,9 +23,9 @@ class DataLoader(Dataset):
 
     def __getitem__(self, index):
         vid = self.keys[index]
-        return self.text.get(vid), \
-               self.speakers.get(vid), \
-               self.labels.get(vid)
+        return torch.Tensor(self.text.get(vid)), \
+               torch.Tensor(self.speakers.get(vid)), \
+               torch.LongTensor(self.labels.get(vid))
 
     def __len__(self):
         return self.len

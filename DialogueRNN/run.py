@@ -1,10 +1,35 @@
-from docopt import docopt
+
+"""
+
+Usage:
+    run.py train [--batch-size=<>] [--embed-size=<>] [--Dg=<>] [--Dp=<>] [--Dep=<>] \
+        [--lay=<>] [--c=<>] [--epoches=<>] \
+        [--dataset-path=<>]
+    run.py (-h | --help)
+
+Options:
+    -h --help   Show this screen.
+    --batch-size=<>  the batch size for each train [default: 1]
+    --embed-size=<>  the embedding size of the utter [default: 100]
+    --Dg=<>     hidden size of the global GRU [default: 50]
+    --Dp=<>     hidden size of the party GRU  [default: 50]
+    --Dep=<>    hidden size of the emotion GRU  [default: 50]
+    --lay=<>    the output of one of the layers  [default: 50]
+    --c=<>      the dim of the output  [default: 6]
+    --epoches=<>  train epoches  [default: 100]
+    --dataset-path=<>  the path of the file about dataset \
+        [default: DialogueRNN_features/DialogueRNN_features/IEMOCAP_features/IEMOCAP_features_raw]
+"""
+
 from dataloader import DataLoader
 from dialogueRNN import DialogueRNN
 
 import torch.optim as optim
 import torch.nn as nn
 import torch
+
+from docopt import docopt
+
 
 def train(args):
     train_dataset = DataLoader(args['--dataset-path'], train=True)
@@ -22,18 +47,24 @@ def train(args):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.03, momentum=0.9)
 
-    for epoch in range(args['--epoches']):
+    for epoch in range(int(args['--epoches'])):
         running_loss = 0.0
         i = 0
         while i < len(train_dataset):
             batch_length = min(batch_size, len(train_dataset) - i)
-            utters, speakers, labels = train_dataset[i]
-
+            utters = []
+            speakers = []
+            labels = []
+            for j in range(batch_length):
+                utter, speaker, label = train_dataset[j+i]
+                utters.append(utter.unsqueeze(0))
+                speakers.append(speaker.unsqueeze(0))
+                labels.append(label.unsqueeze(0))
             i += batch_length
-            utters = torch.Tensor(utters).unsqueeze(0)
-            speakers = torch.Tensor(speakers).unsqueeze(0)
+            utters = torch.cat(utters, dim=0)
+            speakers = torch.cat(speakers, dim=0)
             # labels = onehot(torch.LongTensor(labels).unsqueeze(0), args['--c'])
-            labels = torch.LongTensor(labels).unsqueeze(0)
+            labels = torch.cat(labels, dim=0)
             optimizer.zero_grad()
             outputs = model(utters, speakers)
             loss = criterion(outputs.transpose(1, 2), labels)
@@ -60,6 +91,7 @@ def main():
     args = docopt(__doc__)
     if args['train']:
         train(args)
+    print(args)
 
 def main2():
     args = dict()
@@ -75,4 +107,4 @@ def main2():
     train(args)
 
 if __name__ == '__main__':
-    main2()
+    main()
